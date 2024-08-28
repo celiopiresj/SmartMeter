@@ -1,0 +1,36 @@
+{
+	"name": "smart-meter",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"dev": "nodemon --watch src --ext ts --exec \"ts-node --swc src/server.ts\"",
+		"build": "tsc"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/celiopiresj/api-rest.git"
+	},
+	"author": "",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/celiopiresj/api-rest/issues"
+	},
+	"homepage": "https://github.com/celiopiresj/api-rest#readme",
+	"dependencies": {
+		"dotenv": "^16.4.5",
+		"express": "^4.19.2",
+		"mysql2": "^3.11.0"
+	},
+	"devDependencies": {
+		"@swc/core": "^1.7.21",
+		"@swc/helpers": "^0.5.12",
+		"@types/dotenv": "^8.2.0",
+		"@types/express": "^4.17.21",
+		"@types/node": "^22.5.1",
+		"nodemon": "^3.1.4",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.5.4"
+	}
+}

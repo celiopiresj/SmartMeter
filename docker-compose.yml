@@ -1,0 +1,33 @@
+version: "3.4"
+
+services:
+    db:
+        image: mysql:latest
+        restart: always
+        environment:
+            MYSQL_ROOT_PASSWORD: admin123
+            MYSQL_DATABASE: smartmeter
+            MYSQL_USER: user
+            MYSQL_PASSWORD: admin
+        ports:
+            - ${PORT_DB}:3306
+        volumes:
+            - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    app:
+        image: node:latest
+        restart: always
+        working_dir: /usr/src/app
+        volumes:
+            - ./app:/usr/src/app
+        command: npm run dev
+        environment:
+            NODE_ENV: development
+            DB_HOST: db
+            DB_USER: user
+            DB_PASSWORD: admin
+            DB_DATABASE: smartmeter
+        ports:
+            - ${PORT_APP}:3000
+        depends_on:
+            - db
