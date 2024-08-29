@@ -1,9 +1,9 @@
 import { Router, Request, Response } from "express";
+import SmartMeterController from "../controllers/SmartMeterController";
 
-const router = Router();
+const smartMeterController = new SmartMeterController();
+const routes = Router();
 
-router.get("/", (req: Request, res: Response) => {
-	res.json({ message: "hello world with Typescript" });
-});
+routes.route("/upload").post(smartMeterController.upload);
 
-export default router;
+export default routes;
