@@ -11,8 +11,8 @@ services:
             MYSQL_PASSWORD: admin
         ports:
             - ${PORT_DB}:3306
-        volumes:
-            - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+        # volumes:
+        #     - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
 
     app:
         image: node:latest
@@ -27,6 +27,8 @@ services:
             DB_USER: user
             DB_PASSWORD: admin
             DB_DATABASE: smartmeter
+            GEMINI_API_KEY: ${GEMINI_API_KEY}
+            GEMINI_API_URL: ""
         ports:
             - ${PORT_APP}:3000
         depends_on:

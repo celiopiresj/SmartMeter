@@ -7,6 +7,8 @@ declare global {
 			DB_PASSWORD: string;
 			DB_NAME: string;
 			DB_DATABASE: string;
+			GEMINI_API_KEY: string;
+			GEMINI_API_URL: string;
 		}
 	}
 }
