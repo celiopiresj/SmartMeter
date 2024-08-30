@@ -37,19 +37,29 @@ export function removeBase64Prefix(imageBase64: string): string {
 
 const dirname = __dirname;
 
+console.log(dirname);
+
 export function saveImage(base64: string, format: string): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const imageBase64 = removeBase64Prefix(base64);
 		const buffer = Buffer.from(imageBase64, "base64");
 
-		const filePath = path.join(dirname, "..", "images", `image.${format}`);
+		const imageDir = path.join(dirname, "..", "images");
+		const filePath = path.join(imageDir, `image.${format}`);
 
-		fs.writeFile(filePath, buffer, (err) => {
+		fs.mkdir(imageDir, { recursive: true }, (err) => {
 			if (err) {
 				reject(err);
-			} else {
-				resolve(filePath);
+				return;
 			}
+
+			fs.writeFile(filePath, buffer, (err) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve(filePath);
+				}
+			});
 		});
 	});
 }

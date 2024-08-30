@@ -16,4 +16,6 @@ export default function errorHandler(error: any, req: Request, res: Response, ne
 	} else {
 		new BaseError().sendResponse(res);
 	}
+
+	console.error("Last-error:", error);
 }

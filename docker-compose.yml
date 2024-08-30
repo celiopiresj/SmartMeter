@@ -20,9 +20,10 @@ services:
         working_dir: /usr/app
         volumes:
             - ./app:/usr/app
-        command: npm run dev
+            - ./entrypoint.sh:/usr/app/entrypoint.sh
+        entrypoint: /usr/app/entrypoint.sh
         environment:
-            NODE_ENV: development
+            NODE_ENV: production
             DB_HOST: db
             DB_USER: user
             DB_PASSWORD: admin

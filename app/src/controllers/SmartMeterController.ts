@@ -147,7 +147,6 @@ export default class SmartMeterController {
 
 			const measureExist = await this.smartMeterModel.getMeasurementsByUuid(measure_uuid);
 
-			console.log(measureExist);
 			if (measureExist.length === 0) {
 				return next(new NotFound("Leitura não encontrada.", "MEASURE_NOT_FOUND"));
 			}

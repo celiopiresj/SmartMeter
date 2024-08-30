@@ -1,31 +1,12 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        if (typeof b !== "function" && b !== null)
-            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var BaseError_1 = __importDefault(require("./BaseError"));
-var IncorrectRequest = /** @class */ (function (_super) {
-    __extends(IncorrectRequest, _super);
-    function IncorrectRequest(message, error_code) {
-        if (message === void 0) { message = "Um ou mais dados fornecidos estão incorretos."; }
-        if (error_code === void 0) { error_code = "INVALID_DATA"; }
-        return _super.call(this, message, 400, error_code) || this;
+const BaseError_1 = __importDefault(require("./BaseError"));
+class IncorrectRequest extends BaseError_1.default {
+    constructor(message = "Um ou mais dados fornecidos estão incorretos.", error_code = "INVALID_DATA") {
+        super(message, 400, error_code);
     }
-    return IncorrectRequest;
-}(BaseError_1.default));
+}
 exports.default = IncorrectRequest;

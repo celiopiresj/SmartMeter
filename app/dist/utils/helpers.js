@@ -30,51 +30,59 @@ exports.getImageType = getImageType;
 exports.removeBase64Prefix = removeBase64Prefix;
 exports.saveImage = saveImage;
 exports.isValidISODateTime = isValidISODateTime;
-var fs = __importStar(require("fs"));
-var path = __importStar(require("path"));
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
 function validateMeasuretype(measure_type) {
-    var validTypes = ["WATER", "GAS"];
-    var normalizedMeasureType = measure_type.toUpperCase();
+    const validTypes = ["WATER", "GAS"];
+    const normalizedMeasureType = measure_type.toUpperCase();
     if (!validTypes.includes(normalizedMeasureType)) {
         return false;
     }
     return true;
 }
 function validateBase64(base64) {
-    var base64Regex = /^data:image\/(png|jpeg|jpg|webp|heic|heif);base64,[a-zA-Z0-9+/=]+$/;
+    const base64Regex = /^data:image\/(png|jpeg|jpg|webp|heic|heif);base64,[a-zA-Z0-9+/=]+$/;
     return base64Regex.test(base64);
 }
 function validateImageType(base64) {
-    var base64Regex = /^data:image\/(png|jpeg|jpg|webp|heic|heif);base64,[a-zA-Z0-9+/=]+$/;
-    var match = base64.match(base64Regex);
+    const base64Regex = /^data:image\/(png|jpeg|jpg|webp|heic|heif);base64,[a-zA-Z0-9+/=]+$/;
+    const match = base64.match(base64Regex);
     return match ? true : false;
 }
 function getImageType(base64) {
-    var base64Regex = /^data:image\/(png|jpeg|jpg|webp|heic|heif);base64,[a-zA-Z0-9+/=]+$/;
-    var match = base64.match(base64Regex);
+    const base64Regex = /^data:image\/(png|jpeg|jpg|webp|heic|heif);base64,[a-zA-Z0-9+/=]+$/;
+    const match = base64.match(base64Regex);
     return match ? match[1] : null;
 }
 function removeBase64Prefix(imageBase64) {
-    var base64Prefix = /^data:image\/[a-zA-Z]+;base64,/;
+    const base64Prefix = /^data:image\/[a-zA-Z]+;base64,/;
     return imageBase64.replace(base64Prefix, "");
 }
-var dirname = __dirname;
+const dirname = __dirname;
+console.log(dirname);
 function saveImage(base64, format) {
-    return new Promise(function (resolve, reject) {
-        var imageBase64 = removeBase64Prefix(base64);
-        var buffer = Buffer.from(imageBase64, "base64");
-        var filePath = path.join(dirname, "..", "images", "image.".concat(format));
-        fs.writeFile(filePath, buffer, function (err) {
+    return new Promise((resolve, reject) => {
+        const imageBase64 = removeBase64Prefix(base64);
+        const buffer = Buffer.from(imageBase64, "base64");
+        const imageDir = path.join(dirname, "..", "images");
+        const filePath = path.join(imageDir, `image.${format}`);
+        fs.mkdir(imageDir, { recursive: true }, (err) => {
             if (err) {
                 reject(err);
+                return;
             }
-            else {
-                resolve(filePath);
-            }
+            fs.writeFile(filePath, buffer, (err) => {
+                if (err) {
+                    reject(err);
+                }
+                else {
+                    resolve(filePath);
+                }
+            });
         });
     });
 }
 function isValidISODateTime(dateTimeStr) {
-    var date = new Date(dateTimeStr);
+    const date = new Date(dateTimeStr);
     return !isNaN(date.getTime());
 }
