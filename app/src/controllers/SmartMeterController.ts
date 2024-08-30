@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from "express";
-import connection from "../database/database";
-import SmartMeterModel from "../models/SmartMeterModel";
+import { SmartMeterModel } from "../models/SmartMeterModel";
 import { BaseError, ConflictError, IncorrectRequest, NotFound } from "../errors";
 import { getImageType, isValidISODateTime, saveImage, validateBase64, validateImageType, validateMeasuretype } from "../utils/helpers";
 import { v4 as uuidv4 } from "uuid";
 import { uploadFile } from "../utils/geminiClient";
+import { Pool } from "mysql2/promise";
 
 interface MeasurementRequestBodyPost {
 	image: string;
@@ -42,7 +42,7 @@ interface MeasurementRequestGet extends Request<{}, any, any, MeasurementQueryPa
 export default class SmartMeterController {
 	private smartMeterModel: SmartMeterModel;
 
-	constructor() {
+	constructor(connection: Pool) {
 		this.smartMeterModel = new SmartMeterModel(connection);
 	}
 

@@ -29,7 +29,7 @@ interface RowMeasurement extends RowDataPacket {
 	customer_code?: string;
 }
 
-export default class SmartMeterModel {
+export class SmartMeterModel {
 	private connection: Pool;
 
 	constructor(connection: Pool) {
