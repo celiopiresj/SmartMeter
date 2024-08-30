@@ -6,6 +6,7 @@ if [ -z "$GEMINI_API_KEY" ]; then
   exit 1
 fi
 
+
 echo "Variável GEMINI_API_KEY está definida. Continuando..."
 
 echo "instalando a aplicação..."
