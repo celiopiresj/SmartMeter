@@ -3,6 +3,6 @@ import BaseError from "./BaseError";
 import ConflictError from "./ConflictError";
 import IncorrectRequest from "./IncorrectRequest";
 import NotFound from "./NotFound";
-import ValidationError from "./ValidationError";
+import MySQLDatabaseError from "./MySQLDatabaseError";
 
-export { BaseError, ConflictError, IncorrectRequest, NotFound, ValidationError };
+export { BaseError, ConflictError, IncorrectRequest, NotFound, MySQLDatabaseError };

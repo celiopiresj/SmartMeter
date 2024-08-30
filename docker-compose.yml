@@ -10,16 +10,16 @@ services:
             MYSQL_USER: user
             MYSQL_PASSWORD: admin
         ports:
-            - ${PORT_DB}:3306
-        # volumes:
-        #     - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+            - 8081:3306
+        volumes:
+            - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
 
     app:
         image: node:latest
         restart: always
-        working_dir: /usr/src/app
+        working_dir: /usr/app
         volumes:
-            - ./app:/usr/src/app
+            - ./app:/usr/app
         command: npm run dev
         environment:
             NODE_ENV: development
@@ -28,8 +28,7 @@ services:
             DB_PASSWORD: admin
             DB_DATABASE: smartmeter
             GEMINI_API_KEY: ${GEMINI_API_KEY}
-            GEMINI_API_URL: ""
         ports:
-            - ${PORT_APP}:3000
+            - 8080:3000
         depends_on:
             - db
