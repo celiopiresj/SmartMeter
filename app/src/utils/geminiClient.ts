@@ -31,19 +31,37 @@ export async function uploadFile(imagePath: string, format: string): Promise<{ i
 		mimeType: mimeType,
 	});
 
-	const model = genAI.getGenerativeModel({
+	const modelPro = genAI.getGenerativeModel({
 		model: "gemini-1.5-pro",
 	});
 
-	const result = await model.generateContent([
-		{
-			fileData: {
-				mimeType: uploadResponse.file.mimeType,
-				fileUri: uploadResponse.file.uri,
+	const modelFlash = genAI.getGenerativeModel({
+		model: "gemini-1.5-flash",
+	});
+
+	let result = null;
+
+	try {
+		result = await modelPro.generateContent([
+			{
+				fileData: {
+					mimeType: uploadResponse.file.mimeType,
+					fileUri: uploadResponse.file.uri,
+				},
 			},
-		},
-		{ text: "Review the measurement and return only the numerical value in cubic meters. Do not include the unit 'm³' or any additional text—just the number itself." },
-	]);
+			{ text: "perform an accurate reading of the water meter or gas meter and return only the integer numeric value, excluding any additional text." },
+		]);
+	} catch (error) {
+		result = await modelFlash.generateContent([
+			{
+				fileData: {
+					mimeType: uploadResponse.file.mimeType,
+					fileUri: uploadResponse.file.uri,
+				},
+			},
+			{ text: "perform an accurate reading of the water meter or gas meter and return only the integer numeric value, excluding any additional text." },
+		]);
+	}
 
 	const response = {
 		image_url: uploadResponse.file.uri,

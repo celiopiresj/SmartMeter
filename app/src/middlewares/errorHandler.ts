@@ -9,6 +9,8 @@ export default function errorHandler(error: any, req: Request, res: Response, ne
 		} else {
 			new BaseError(`responseService: ${error.statusText}`, error.status, "GEMINI_PROCESSING_ERROR").sendResponse(res);
 		}
+	} else if (error instanceof MySQLDatabaseError) {
+		new BaseError().sendResponse(res);
 	} else if (error instanceof BaseError) {
 		error.sendResponse(res);
 	} else {

@@ -1,10 +1,43 @@
 import { Request, Response, NextFunction } from "express";
 import connection from "../database/database";
 import SmartMeterModel from "../models/SmartMeterModel";
-import { BaseError, IncorrectRequest, NotFound } from "../errors";
-import { getImageType, isValidISODateTime, saveImage, validateBase64, validateMeasuretype } from "../utils/helpers";
-import { uploadFile } from "../utils/geminiClient";
+import { BaseError, ConflictError, IncorrectRequest, NotFound } from "../errors";
+import { getImageType, isValidISODateTime, saveImage, validateBase64, validateImageType, validateMeasuretype } from "../utils/helpers";
 import { v4 as uuidv4 } from "uuid";
+import { uploadFile } from "../utils/geminiClient";
+
+interface MeasurementRequestBodyPost {
+	image: string;
+	customer_code: string;
+	measure_datetime: string;
+	measure_type: string;
+}
+
+interface MeasurementRequestPost extends Request {
+	body: MeasurementRequestBodyPost;
+}
+
+interface MeasurementRequestBodyUpdate {
+	measure_uuid: string;
+	confirmed_value: number;
+}
+
+interface MeasurementRequestUpdate extends Request {
+	body: MeasurementRequestBodyUpdate;
+}
+
+interface MeasurementQueryParams {
+	measure_type?: string;
+}
+
+interface MeasurementParams {
+	customer_code: string;
+}
+
+interface MeasurementRequestGet extends Request<{}, any, any, MeasurementQueryParams> {
+	params: MeasurementParams;
+	query: MeasurementQueryParams;
+}
 
 export default class SmartMeterController {
 	private smartMeterModel: SmartMeterModel;
@@ -13,41 +46,66 @@ export default class SmartMeterController {
 		this.smartMeterModel = new SmartMeterModel(connection);
 	}
 
-	async upload(req: Request, res: Response, next: NextFunction) {
+	private validateRequestBody(req: MeasurementRequestPost): IncorrectRequest | null {
+		const data = req.body;
+
+		const fields = {
+			image: "O campo image deve ser estar em base64 e usar um dos seguintes tipos de imagem: png, jpeg, jpg, webp, heic ou heif.",
+			customer_code: "O campo customer_code deve ser uma string.",
+			measure_datetime: "O campo measure_datetime deve estar no formato: YYYY-MM-DDTHH:mm:ssZ.",
+			measure_type: "O tipo fornecido no campo measure_type é inválido, os valores válidos são 'WATER' ou 'GAS'.",
+		};
+
+		const validationFunctions: { [key: string]: (value: any) => boolean } = {
+			customer_code: (value) => typeof value === "string",
+			image: (value) => validateBase64(value) && validateImageType(value),
+			measure_datetime: (value) => isValidISODateTime(value),
+			measure_type: (value) => validateMeasuretype(value),
+		};
+
+		for (const field of Object.keys(fields)) {
+			if (!Object.prototype.hasOwnProperty.call(data, field)) {
+				return new IncorrectRequest("Os dados fornecidos no corpo da requisição são inválidos.", "INVALID_DATA");
+			} else {
+				const errorMessage = fields[field as keyof typeof fields];
+				const value = Reflect.get(data, field);
+
+				if (validationFunctions[field] ? validationFunctions[field](value) : value) {
+					continue;
+				}
+
+				return new IncorrectRequest(errorMessage, "INVALID_DATA");
+			}
+		}
+
+		return null;
+	}
+
+	async upload(req: MeasurementRequestPost, res: Response, next: NextFunction) {
 		const { image, customer_code, measure_datetime, measure_type } = req.body;
 
-		if (!image || !customer_code || !measure_datetime || !measure_type) {
-			return next(new IncorrectRequest("Os dados fornecidos no corpo da requisição são inválidos", "INVALID_DATA"));
-		}
+		const validationError = this.validateRequestBody(req);
 
-		if (!validateBase64(image)) {
-			return next(new IncorrectRequest("O campo image deve ser estar em base64.", "INVALID_DATA"));
-		}
-
-		if (typeof customer_code !== "string") {
-			return next(new IncorrectRequest("O campo customer_code deve ser uma string.", "INVALID_DATA"));
-		}
-
-		if (!isValidISODateTime(measure_datetime)) {
-			return next(new IncorrectRequest("O campo measure_datetime deve estar no formato: YYYY-MM-DDTHH:mm:ssZ", "INVALID_DATA"));
-		}
-
-		const resultValidateMeasuretype = validateMeasuretype(measure_type);
-
-		if (resultValidateMeasuretype instanceof IncorrectRequest) {
-			return next(resultValidateMeasuretype);
-		}
-
-		const typeImage = getImageType(image);
-
-		if (!typeImage) {
-			return next(new IncorrectRequest("O tipo da imagem é ínvalido", "INVALID_DATA"));
+		if (validationError) {
+			return next(validationError);
 		}
 
 		try {
-			// const path = await saveImage(image, typeImage);
-			// const response = await uploadFile(path, typeImage);
-			const response = { image_url: "ssfsfs", measure_value: "345522" };
+			const measureExist = await this.smartMeterModel.checkReadingExistsByTypeAndCustomeCode(String(measure_type).toUpperCase(), String(customer_code).toLowerCase(), new Date(measure_datetime));
+
+			if (measureExist) {
+				return next(new ConflictError("Leitura do mês já realizada.", "DOUBLE_REPORT"));
+			}
+
+			const image_type = getImageType(image);
+
+			if (typeof image_type !== "string") {
+				return next(new ConflictError("O campo image deve ser estar em base64 e usar um dos seguintes tipos de imagem: png, jpeg, jpg, webp, heic ou heif.", "INVALID_DATA"));
+			}
+
+			const path = await saveImage(image, image_type);
+			const response = await uploadFile(path, image_type);
+
 			const measure_uuid = uuidv4();
 
 			const data = {
@@ -55,13 +113,14 @@ export default class SmartMeterController {
 				image_url: response.image_url,
 				measure_datetime: new Date(measure_datetime),
 				measure_type: String(measure_type).toUpperCase(),
+				measure_value: Number(response.measure_value),
 				customer_code,
 			};
 
 			const result = await this.smartMeterModel.createMeasurement(data);
 
-			if (result) {
-				res.status(200).send({ ...response, measure_uuid });
+			if (result.affectedRows > 0) {
+				res.status(200).json({ ...response, measure_uuid });
 			} else {
 				throw new BaseError("Erro ao cadastrar a medição.");
 			}
@@ -70,13 +129,57 @@ export default class SmartMeterController {
 		}
 	}
 
-	async get(req: Request, res: Response, next: NextFunction) {
-		const customerCode = req.params.customerCode;
-		const measureType = req.query.measure_type as string;
+	async confirm(req: MeasurementRequestUpdate, res: Response, next: NextFunction) {
+		const { measure_uuid, confirmed_value } = req.body;
 
-		if (measureType) {
-			if (validateMeasuretype(measureType) !== true) {
-				return next(new IncorrectRequest("Tipo de medição não permitida", "INVALID_TYPE"));
+		try {
+			if (!measure_uuid || !confirmed_value) {
+				return next(new IncorrectRequest("Os dados fornecidos no corpo da requisição são inválidos.", "INVALID_DATA"));
+			}
+
+			if (typeof measure_uuid !== "string") {
+				return next(new IncorrectRequest("O valor  do campo measure_uuid deve ser uma string", "INVALID_DATA"));
+			}
+
+			if (!Number.isInteger(confirmed_value)) {
+				return next(new IncorrectRequest("O valor para confirmação deve ser um número inteiro.", "INVALID_DATA"));
+			}
+
+			const measureExist = await this.smartMeterModel.getMeasurementsByUuid(measure_uuid);
+
+			console.log(measureExist);
+			if (measureExist.length === 0) {
+				return next(new NotFound("Leitura não encontrada.", "MEASURE_NOT_FOUND"));
+			}
+
+			if (measureExist[0].has_confirmed) {
+				return next(new NotFound("Leitura do mês já confirmada.", "CONFIRMATION_DUPLICATE"));
+			}
+
+			const data = {
+				measure_value: confirmed_value,
+				has_confirmed: true,
+			};
+
+			const result = await this.smartMeterModel.updateByUuid(measure_uuid, data);
+
+			if (result.affectedRows > 0) {
+				res.status(200).json({ success: true });
+			} else {
+				throw new BaseError("Erro ao confirmar a medição.");
+			}
+		} catch (error) {
+			next(error);
+		}
+	}
+
+	async get(req: MeasurementRequestGet, res: Response, next: NextFunction) {
+		const { customer_code } = req.params;
+		const { measure_type } = req.query;
+
+		if (measure_type) {
+			if (validateMeasuretype(measure_type) !== true) {
+				return next(new IncorrectRequest("Tipo de medição não permitida.", "INVALID_TYPE"));
 			}
 		} else {
 			if (Object.keys(req.query).length > 0) {
@@ -85,13 +188,15 @@ export default class SmartMeterController {
 		}
 
 		try {
-			const result = await this.smartMeterModel.getAll(customerCode, measureType);
+			const result = await this.smartMeterModel.getMeasurementsByCustomerCode(customer_code, measure_type);
+
 			if (result.length > 0) {
 				const data = {
-					customer_code: customerCode,
+					customer_code,
 					measures: result,
 				};
-				res.status(200).send(data);
+
+				res.status(200).json(data);
 			} else {
 				next(new NotFound("Nenhuma leitura encontrada", "MEASURES_NOT_FOUND"));
 			}
